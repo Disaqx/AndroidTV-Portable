@@ -1,0 +1,366 @@
+========================================================================
+  ANDROID TV PORTATIL  -  paquete TODO INCLUIDO (Legion Go / cualquier PC)
+========================================================================
+
+QUE ES
+------
+Un "televisor" Android a pantalla completa hecho con el emulador de Android.
+Incluye tus apps (XUPER TV y Downloader), el lanzador a pantalla completa, el
+puente para manejar el mando y crea un acceso directo "Android TV" en el
+escritorio.
+
+El SDK de Android (emulador, platform-tools e imagen de TV) viene INCLUIDO
+en el paquete. NO necesitas instalar Android Studio, Java ni tener internet.
+
+
+COMO INSTALAR  (doble clic, sin abrir PowerShell)
+-------------------------------------------------
+1. Copia TODA esta carpeta "AndroidTV-Portable" al otro PC (USB, red, etc.).
+   (Pesa ~1 GB por el SDK incluido.)
+
+2. Doble clic en  INSTALAR.bat
+   (Es un .bat justamente para que Windows lo EJECUTE. Los .ps1 los abre el
+    editor/IDE en vez de ejecutarlos, por eso no debes tocarlos directamente.)
+
+   Para que ademas active solo el hipervisor de Windows, mejor:
+   clic derecho en INSTALAR.bat -> "Ejecutar como administrador".
+
+3. Espera. La primera vez extrae el SDK (~1-2 min) y arranca el emulador
+   para instalar las apps (~1-2 min mas).
+
+4. Al terminar tendras "Android TV" en el escritorio. Doble clic para usarlo.
+
+
+LOS 3 .BAT DEL PAQUETE
+----------------------
+  INSTALAR.bat ..... instalacion completa (la primera vez).
+  ACTUALIZAR.bat ... reaplica los scripts y vuelve a detectar la resolucion,
+                     SIN reinstalar el SDK ni tocar tus apps. Usalo en un
+                     equipo donde el Android TV ya estaba instalado.
+  DIAGNOSTICO.bat .. te dice que resolucion detecta, como esta configurado el
+                     AVD, si el puente del mando esta corriendo, que ventana
+                     tiene el foco, y muestra EN VIVO lo que reporta tu mando
+                     al pulsar cada boton. Ejecutalo si algo no va bien.
+  ARRANQUE-RAPIDO.bat  arranque con instantanea (~20 s). Pruebalo si el audio
+                     va mal los primeros minutos.
+  ARRANQUE-SEGURO.bat  vuelve al arranque en frio de siempre (~30 s).
+  INFORME.bat ...... recoge TODO el estado en un .txt en el escritorio, para
+                     poder diagnosticar desde otro equipo. Ejecutalo CON EL TV
+                     ABIERTO y el mando conectado.
+  TACTIL-NO.bat .... desactiva la pantalla tactil (como era al principio).
+  TACTIL-SI.bat .... la vuelve a activar.
+                     Sirven para comprobar si el tactil rompe algo: pon NO,
+                     reinicia el TV y prueba; si mejora, ya sabemos la causa.
+  PUENTE-MANUAL.bat  arranca el puente del mando A LA VISTA. Normalmente
+                     corre oculto; usalo solo si el TV esta abierto y el mando
+                     no responde, para ver el error en pantalla.
+  MEDIR-CALIDAD.bat  te dice la resolucion y el BITRATE real del canal que
+                     estas viendo, y si ese bitrate da o no para esa
+                     resolucion. Sirve para comparar canales y servidores
+                     con datos en vez de a ojo.
+
+
+REQUISITO (una sola vez)
+------------------------
+El PC donde instales necesita tener:
+  1. VIRTUALIZACION activada en la BIOS.
+     - En la Legion Go: Configuracion UEFI > AMD SVM > Enabled.
+     - En PCs Intel: VT-x (BIOS > Advanced > CPU).
+  2. "Plataforma de hipervisor de Windows" (WHPX) activada:
+     - Panel de control > Programas > Activar o desactivar caracteristicas
+       de Windows > marca "Plataforma de hipervisor de Windows" > Aceptar
+       y reiniciar.
+     (INSTALAR.bat ejecutado COMO ADMINISTRADOR lo activa solo; la
+      virtualizacion en BIOS solo la puedes activar tu.)
+
+
+PANTALLA COMPLETA
+-----------------
+La resolucion se detecta sola con la medida FISICA del panel, asi que funciona
+aunque Windows tenga escalado activado (la Legion Go viene al 150%: antes se
+detectaban 1707x1067 en vez de 2560x1600 y el TV no llenaba la pantalla).
+
+Si aun asi no llena la pantalla:
+  - Ejecuta DIAGNOSTICO.bat y mira la linea "EnumDisplaySettings (FISICA)":
+    esa es la medida que deberia tener el AVD, unas lineas mas abajo.
+  - Si no coinciden, ejecuta ACTUALIZAR.bat (reconfigura el AVD a la
+    resolucion actual) y vuelve a abrir el TV.
+
+NOTA sobre nitidez: Android memoriza el tamanio de pantalla la PRIMERA vez que
+arranca el AVD. Si cambias la resolucion despues, la ventana ira a pantalla
+completa igual, pero Android dibujara al tamanio viejo y lo estirara. Para que
+dibuje nativo habria que recrear el AVD desde cero (eso borra las apps y sus
+sesiones, por eso no se hace solo).
+
+
+ARRANCA DIRECTO EN TU APP
+-------------------------
+Al abrir el TV, en cuanto Android termina de arrancar se abre sola XUPER TV NF;
+no te quedas en el menu de Android. Si sales de la app con B, caes en el menu
+de Android TV normal (sirve de red de seguridad).
+
+Para cambiarlo, crea el fichero  %USERPROFILE%\.android\tv.ini  con UNA linea:
+    app=com.android.mgstxNF   -> abre esa app (es lo que hace por defecto)
+    app=com.esaba.downloader  -> abre Downloader
+    app=ninguno               -> no abre nada, se queda en el menu de Android
+Si la app indicada no esta instalada, simplemente se queda en el menu.
+
+
+POR QUE SE VE PIXELADO (medido, no supuesto)
+--------------------------------------------
+Se midio el video real de XUPER TV y salio esto:
+    1280x720, HEVC, entre 0,85 y 1,2 Mbps
+Para 720p en HEVC hacen falta unos 2,5 Mbps. O sea, llega alrededor de un
+TERCIO de los bits necesarios. Por eso se ven bloques grandes: no es que
+falten pixeles, es que el compresor los agrupa porque no tiene bits.
+
+Eso NO se arregla con filtros ni reescaladores. Al contrario: los filtros que
+afilan (FSR, CuNNy, Anime4K) toman el borde del bloque por detalle real y lo
+marcan MAS. Se probo y se ve igual o peor.
+
+QUE SI AYUDA, por orden de impacto:
+  1. LA FUENTE. Otro servidor o version del canal (FHD/HD) de tu proveedor.
+     Usa MEDIR-CALIDAD.bat para comparar: el que de mas Mbps es el bueno.
+  2. Streams en H.264 en vez de HEVC si tu lista los ofrece. Aqui el HEVC se
+     decodifica por SOFTWARE y va justo (de ahi los cortes y parte de los
+     chasquidos de audio).
+  3. Subir el buffer en los ajustes de la app, si los tiene: menos cortes.
+  4. Ver en pantalla mas pequenia o desde mas lejos. Los bloques se notan
+     menos cuanto menos se amplien: en la pantalla de la Legion Go se vera
+     mejor que en un monitor grande. No es un truco, es geometria.
+  5. Si algun dia quieres volver a probar un filtro, el que ayuda en material
+     de bitrate bajo NO es afilar sino SUAVIZAR: Magpie trae un efecto
+     "Deband" para eso. Afilar es justo lo contrario de lo que hace falta.
+
+
+NITIDEZ / REESCALADO CON IA (opcional, desactivado)
+---------------------------------------------------
+Primero, un dato medido: la imagen de Android TV NO dibuja la interfaz mas
+ancha de 1920 px. Aunque le pongas un AVD de 2560, Android lo limita a 1920 y
+lo estira. Por eso el instalador ya crea el AVD topado en 1920 respetando la
+proporcion de tu pantalla: la VM trabaja menos y la ampliacion final la hace
+la GPU. Pedir 2K no da mas detalle, solo mas trabajo.
+
+Y el techo real: si el canal viene a 720p, no hay nada que recupere un detalle
+que no esta en la senial.
+
+Dicho eso, SI se puede mejorar el aspecto con un reescalador por IA. Ya viene
+TODO MONTADO en el paquete (Magpie, gratis y de codigo abierto), asi que solo
+tienes que encenderlo o apagarlo:
+
+    ESCALADOR-SI.bat  ->  enciende el reescalador por IA (CuNNy)
+    ESCALADOR-NO.bat  ->  MARCHA ATRAS: lo apaga y deja el TV como estaba
+
+Despues de cambiarlo, cierra el TV y vuelvelo a abrir. Nada mas.
+(Por dentro solo cambia una linea "escalador=si/no" en %USERPROFILE%\.android\
+tv.ini, y el TV arranca Magpie solo cuando esta encendido.)
+
+Si quieres otro filtro en vez de CuNNy: abre Magpie (bandeja del reloj) y
+cambia el modo de escalado del perfil "Android TV". Los que usan red neuronal
+son CuNNy, Anime4K, FSRCNNX y NNEDI3; FSR es mas ligero pero solo afila.
+(Anime4K esta pensado para dibujos/anime; para interfaz y texto suele ir
+mejor CuNNy, que es con el que se hizo la comparacion.)
+
+OJO CON EL BOTON "INICIAR" DE MAGPIE: en la ficha del perfil, ese boton lanza
+el programa del perfil. Apunta al acceso directo "Android TV", que es lo
+correcto. Si alguna vez lo ves apuntando al .exe del emulador y da errores de
+"DLL no encontrada", es porque ese binario interno no se puede ejecutar suelto
+(necesita las DLL de la carpeta de arriba). Arranca el TV como siempre, con su
+acceso directo del escritorio, y listo: Magpie lo detecta y lo amplia solo.
+
+COPIA DE SEGURIDAD: antes de activar esto se guardo el estado que funcionaba
+en  %USERPROFILE%\.android\backup-antes-escalador\  (lanzador, puente,
+config del AVD y config de Magpie). Si algo se tuerce del todo, con
+ESCALADOR-NO.bat deberia bastar; esa carpeta es la red de seguridad extra.
+
+AVISOS HONESTOS:
+  - Se nota sobre todo en TEXTOS E INTERFAZ. En video real comprimido ayuda
+    menos, y a veces REALZA los cuadraditos de compresion en vez de taparlos.
+  - En la Legion Go el reescalador COMPITE POR LA GPU con el emulador. Si ya
+    tienes chasquidos de audio, esto puede empeorarlos. En un PC de sobremesa
+    con GPU dedicada sobra margen.
+  - El mando sigue funcionando con Magpie delante (el puente lo detecta), pero
+    esa combinacion NO esta probada a fondo: si algo raro pasa, quita
+    escalador=si y listo.
+
+
+AUDIO MAL AL PRINCIPIO Y LUEGO MEJORA  ->  ARRANQUE RAPIDO
+----------------------------------------------------------
+Si el audio va mal los primeros minutos y luego se arregla solo, es que el
+emulador esta haciendo todo el trabajo de arranque de Android justo cuando te
+pones a ver algo. Medido: en arranque en frio el emulador consume 60,7 s de
+CPU hasta quedar listo; con arranque rapido, 9,1 s. Casi 7 veces menos.
+
+    ARRANQUE-RAPIDO.bat  ->  usa instantanea: abre en ~20 s y Android reanuda
+                             ya asentado. Es lo que hay que probar si el audio
+                             te falla al principio.
+    ARRANQUE-SEGURO.bat  ->  vuelve al arranque en frio de siempre (~30 s).
+
+Es seguro probarlo: si la instantanea se estropea, el emulador lo detecta y
+arranca en frio solo, y ademas el lanzador tiene su propia red de seguridad
+(a los 90 s borra la instantanea y arranca limpio). Verificado corrompiendo
+una instantanea a proposito: el TV arranco igual.
+
+
+SI ALGUNA VEZ "NO ARRANCA Y SE QUEDA EN NEGRO"
+----------------------------------------------
+Causa encontrada: tras un cierre brusco (apagon, matar el proceso), el emulador
+guarda datos del fallo y en el SIGUIENTE arranque muestra una ventana pidiendo
+permiso para enviarlos a Google. Esa ventana es modal y BLOQUEA el arranque:
+el TV no aparece nunca. Y encima puede salir fuera de la pantalla, asi que ni
+la ves para cerrarla.
+Ya no deberia pasar: el lanzador borra esos datos antes de arrancar y usa
+-no-metrics para que no vuelva a preguntar. Si alguna vez vuelves a verlo,
+borra a mano la carpeta:  %TEMP%\AndroidEmulator
+
+
+AUDIO (chasquidos / cortes)
+---------------------------
+PRIMERO PRUEBA ESTO. El emulador solo trae dos motores de audio en Windows:
+"dsound" (DirectSound, el que usa por defecto) y "winaudio". DirectSound es el
+que suele dar chasquidos. Para cambiarlo, pon en  %USERPROFILE%\.android\tv.ini
+la linea:
+    audio=winaudio
+y vuelve a abrir el TV. Para volver atras:  audio=dsound  (o borra la linea).
+Comprobado que con los dos el sonido sigue funcionando, asi que puedes probar
+sin miedo a quedarte sin audio; cual suena mejor solo lo puedes juzgar tu.
+
+Ademas, el instalador reparte los recursos segun tu equipo (deja siempre 2
+nucleos libres para Windows) y desactiva la captura de microfono, que no se usa.
+
+Si aun asi cruje, baja la carga de decodificacion:
+  - Cierra otros programas pesados (navegador con muchas pestanias, juegos).
+  - En la app IPTV, baja la calidad del canal si tiene la opcion.
+  - Conecta el equipo a la corriente y ponlo en modo Rendimiento (en la Legion
+    Go esto importa mucho: en modo ahorro la CPU baja y el audio se resiente).
+
+
+SI CONECTAS AURICULARES BLUETOOTH CON EL TV YA ABIERTO
+------------------------------------------------------
+El sonido no se cambia solo y el emulador se queda mudo. No es un fallo de
+configuracion: el motor de audio del emulador agarra la salida de sonido al
+arrancar y no se entera de que Windows ha cambiado de dispositivo (no usa el
+sistema moderno de Windows que si lo permitiria, y el emulador no tiene ningun
+comando para reinicializar el audio en caliente; esta comprobado).
+
+Asi que hay dos formas de resolverlo:
+  - Conecta los auriculares ANTES de abrir el TV, o
+  - Con el TV abierto, pulsa BACK(View) + START a la vez ~1 segundo: el TV se
+    reinicia solo y coge la salida de audio nueva (tarda ~30 s y vuelve a abrir
+    tu app sola).
+
+
+PANTALLA TACTIL
+---------------
+El AVD se crea con pantalla multi-tactil activada (hasta 11 dedos), asi que la
+pantalla tactil de la Legion Go puede manejar el TV. Ojo: XUPER TV esta pensada
+para mando/control remoto, asi que algunas zonas puede que no reaccionen al
+toque aunque el tactil funcione: eso es cosa de la app, no del emulador.
+
+TACTIL + BARRA DE TAREAS: al tocar la pantalla, un gesto desde el borde puede
+sacar la barra de tareas de Windows, que se lleva el foco. Antes eso dejaba el
+mando muerto. Ahora:
+  - La ventana del TV se marca "siempre encima", asi la barra no la tapa.
+  - Si la barra roba el foco, el mando SIGUE funcionando (el puente cambia de
+    via automaticamente) y se intenta recuperar el foco.
+Si ves la barra de tareas, basta con tocar la imagen del TV para quitarla.
+
+
+ALT+TAB Y VENTANAS (el TV no se queda pegado delante)
+-----------------------------------------------------
+El TV solo esta "siempre encima" MIENTRAS ES LA VENTANA ACTIVA. En cuanto te
+vas a otro programa (Alt+Tab, vista de tareas, clic en otra ventana), el TV
+suelta el "siempre encima" y se comporta como una ventana normal: puedes
+trabajar encima de el y la barra de tareas vuelve a verse. Al volver al TV,
+recupera la pantalla completa sin bordes solo.
+
+La barra de tareas es el UNICO caso en que el TV insiste en recuperar el foco,
+porque ahi no estas cambiando de programa: te ha saltado sola por un gesto
+tactil. El conmutador de Alt+Tab y la vista de tareas NO cuentan como robo de
+foco, precisamente para no estorbarte al cambiar de aplicacion.
+
+
+BARRA BLANCA DEL BORDE DERECHO
+------------------------------
+Era la barra de controles del emulador: una ventana aparte que, con el TV a
+pantalla completa, quedaba pegada al borde y casi entera fuera de la pantalla
+(por eso se veia cortada y no servia). Ahora se oculta automaticamente al
+arrancar, y el puente la vigila por si Qt intenta volver a mostrarla.
+
+
+MANDO (control)
+---------------
+  Cruceta / stick izquierdo .... navegar
+  A ............................ OK / seleccionar
+  B ............................ atras
+  Start ........................ Home (inicio del TV)
+  LB / RB ...................... bajar / subir volumen (mantener = repite)
+
+  COMBINACIONES (hay que MANTENERLAS ~1 segundo, para no darlas sin querer):
+  Los DOS joysticks pulsados ... CERRAR el TV
+  BACK(View) + START ........... REINICIAR el TV (util para recuperar el audio
+                                 si conectaste auriculares con el TV abierto)
+
+El mando funciona aunque la BARRA DE TAREAS se ponga delante (pasa al usar la
+pantalla tactil): en ese caso el puente sigue manejando el TV por otra via, algo
+mas lenta pero igual de valida, y ademas intenta devolverle el foco al TV.
+Solo deja de actuar si te vas a OTRO PROGRAMA, que es lo que se espera.
+
+El puente lee el mando por XInput (Legion Go, Xbox, Steam Deck) y, si no hay,
+por DirectInput/HID clasico. DIAGNOSTICO.bat te dice cual esta usando y que
+boton estas pulsando en cada momento.
+
+>>> SI AL NAVEGAR EL FOCO SALTA DE DOS EN DOS <<<
+Significa que el emulador YA esta reenviando el mando por su cuenta y se esta
+duplicando la entrada con el puente. Solucion (10 segundos):
+
+  1. Abre el Bloc de notas.
+  2. Escribe una sola linea:      nav=emulador
+  3. Guardalo como:               %USERPROFILE%\.android\gamepad.ini
+     (en "Guardar como", en Tipo elige "Todos los archivos" para que no le
+      pegue un .txt al final)
+  4. Cierra el TV y vuelve a abrirlo.
+
+Con nav=emulador el puente deja la navegacion y el boton A/B al emulador, y
+solo aniade el volumen (LB/RB) y Home (Start), que el emulador no cubre.
+Para volver al comportamiento normal, borra ese fichero o pon  nav=teclado
+
+
+NOTAS
+-----
+- Arranca SIEMPRE en frio (~20 s). Es a proposito: evita el cuelgue de pantalla
+  negra que causaba el arranque rapido con snapshot danado.
+- Se cierra el TV con Alt+F4 sobre la imagen.
+- Para cambiar/aniadir apps: pon el .apk en la carpeta "apps" antes de instalar,
+  o luego con:  adb install -r TuApp.apk
+
+
+PROBLEMAS
+---------
+- "Se abre el editor de codigo en vez de instalarse": estas haciendo doble clic
+  en un .ps1. Usa INSTALAR.bat.
+- "No arranca / pantalla negra": cierra todo (Administrador de tareas ->
+  qemu-system-x86_64) y vuelve a dar doble clic. Espera ~20-30 s.
+- "WHPX no disponible": activa la virtualizacion en la BIOS y la
+  "Plataforma de hipervisor de Windows" en Caracteristicas de Windows.
+  Reinicia el PC despues de activarlas.
+- "El mando no hace nada": ejecuta DIAGNOSTICO.bat CON EL TV ABIERTO (el
+  puente solo existe mientras el TV corre; con el TV cerrado es normal que
+  diga que no esta). Si no detecta ningun mando, conectalo o ponlo en modo
+  XInput/Xbox. Si el TV esta abierto y aun asi dice que el puente NO corre,
+  ejecuta PUENTE-MANUAL.bat: arranca el puente a la vista y veras el error.
+  Tambien queda registro en %USERPROFILE%\.android\puente.log
+- "adb offline": cierra el emulador y reabre el acceso directo.
+
+
+ARCHIVOS
+--------
+  INSTALAR.bat ............... instalacion completa (doble clic)
+  ACTUALIZAR.bat ............. reaplica scripts + resolucion
+  DIAGNOSTICO.bat ............ pantalla y mando, en vivo
+  INSTALL.ps1 ................ el instalador real (lo llaman los .bat)
+  sdk.7z ..................... SDK de Android completo (emulador + adb + imagen TV)
+  tools\7z.exe ............... descompresor del SDK
+  scripts\ ................... lanzador, puente del mando, diagnostico, wrapper
+  config\config.ini .......... plantilla del AVD (la resolucion se ajusta sola)
+  apps\ ...................... tus APKs (XUPER TV, Downloader)

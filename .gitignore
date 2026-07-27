@@ -1,0 +1,25 @@
+# ---------------------------------------------------------------------------
+#  SDK de Android empaquetado: 996 MB.
+#  GitHub rechaza cualquier fichero de mas de 100 MB, asi que NO puede ir aqui.
+#  Se publica como adjunto de la Release 'sdk-v1'. El instalador NO lo necesita:
+#  si falta, baja el SDK de los repositorios publicos de Google.
+#  Ver README.md -> "El SDK se instala solo"
+# ---------------------------------------------------------------------------
+sdk.7z
+
+# ---------------------------------------------------------------------------
+#  APKs de terceros: NINGUNA se versiona.
+#  No son nuestras para redistribuirlas. Deja las tuyas en apps\ y el
+#  instalador las detecta: instala todos los .apk que encuentre ahi.
+#  Downloader se descarga de https://www.aftvnews.com/downloader/
+# ---------------------------------------------------------------------------
+apps/*.apk
+
+# Restos de instalacion / ejecucion
+*.log
+puente.log
+tv.ini
+
+# Windows
+Thumbs.db
+desktop.ini

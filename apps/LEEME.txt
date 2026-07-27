@@ -1,0 +1,12 @@
+Deja aqui los .apk que quieras instalar.
+
+El instalador instala TODOS los .apk que encuentre en esta carpeta, asi que
+basta con dejarlos y ejecutar INSTALAR.bat.
+
+  Downloader (el del logo naranja):  https://www.aftvnews.com/downloader/
+
+No se distribuye ninguna app en este repositorio: no son nuestras para
+redistribuirlas. Descargalas de su fuente oficial.
+
+Si ya instalaste y anades una app despues, dejala aqui y ejecuta
+ACTUALIZAR.bat.

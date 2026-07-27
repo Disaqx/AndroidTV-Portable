@@ -1,0 +1,45 @@
+7-Zip
+=====
+
+Los ficheros 7z.exe y 7z.dll de esta carpeta son parte de 7-Zip.
+
+    7-Zip 26.00 (x64)
+    Copyright (c) 1999-2026 Igor Pavlov
+    https://www.7-zip.org
+
+Se redistribuyen sin modificar, tal y como los publica su autor.
+
+
+LICENCIA
+--------
+
+7-Zip esta licenciado bajo la GNU LGPL, con licencias adicionales para
+algunos componentes de 7z.dll:
+
+  - GNU LGPL           : licencia principal, aplica a todos los ficheros.
+  - BSD 3-clause       : codigo de descompresion LZFSE (derivado de la
+                         libreria LZFSE de Apple Inc.) y codigo de
+                         descompresion ZSTD (desarrollado usando como
+                         referencia el decodificador zstd de Facebook Inc.).
+  - BSD 2-clause       : codigo de hashing XXH64 (derivado de la
+                         implementacion original de Yann Collet).
+
+Restriccion del motor unRAR:
+
+    "The unRAR sources cannot be used to re-create the RAR compression
+     algorithm, which is proprietary."
+
+Puedes usar 7-Zip en cualquier ordenador, incluido el de una organizacion
+comercial. No hace falta registrarse ni pagar.
+
+El texto completo y actualizado de la licencia esta en:
+
+    https://www.7-zip.org/license.txt
+
+
+POR QUE ESTA AQUI
+-----------------
+
+Se usa para extraer sdk.7z, el paquete del SDK de Android, cuando se instala
+sin conexion. Se incluye el binario en vez de depender de un 7-Zip instalado
+para que el paquete funcione en un equipo recien formateado.
