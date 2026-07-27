@@ -156,6 +156,23 @@ proyectos sin compilar hasta que lo vuelvas a descargar.
 
 La carpeta del paquete no se toca: borrala tu si ya no la quieres.
 
+## El reescalador (Magpie)
+
+El AVD se crea a 1920 px de ancho a proposito: la imagen de Android TV no dibuja
+la interfaz mas ancha que eso, asi que pedirle 2560 solo hace que la maquina
+virtual componga pixeles que luego tira. **La ampliacion hasta tu pantalla real
+la hace [Magpie](https://github.com/Blinue/Magpie)**, por GPU, que ademas le
+quita trabajo a la VM.
+
+Magpie tambien aporta `TouchHelper.exe`, que es lo que da **soporte tactil**.
+
+No viene incluido: Magpie es GPL-3.0 y este proyecto es MIT. El instalador lo
+descarga de su release oficial (~11 MB), eligiendo la build x64 o ARM64 segun tu
+equipo. Si la descarga falla, el TV arranca igual pero **en ventana y sin
+tactil**, y el instalador te lo dice en rojo.
+
+Para activarlo o desactivarlo: `ESCALADOR-SI.bat` / `ESCALADOR-NO.bat`.
+
 ## Por que la ventana nativa y no scrcpy
 
 Se usa la ventana propia del emulador puesta a pantalla completa. Con scrcpy

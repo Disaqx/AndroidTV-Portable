@@ -414,9 +414,56 @@ Get-ChildItem "$pkg\scripts\*.ps1", "$pkg\scripts\*.vbs" -ErrorAction SilentlyCo
 }
 Write-Host ("  {0} scripts copiados." -f $copiados) -ForegroundColor Green
 
-# --- Reescalador por IA (Magpie), opcional --------------------------------
-# Se copia SIEMPRE, pero solo actua si activas ESCALADOR-SI.bat. Ademas hay que
-# dejarle a Magpie un perfil que reconozca la ventana del TV y la amplie sola.
+# --- Reescalador Magpie ----------------------------------------------------
+# Magpie hace DOS cosas imprescindibles: amplia la ventana del TV a pantalla
+# completa, y su TouchHelper.exe es el que da soporte tactil. Sin el, el TV
+# arranca en una ventana pequenia y el tactil no responde.
+#
+# NO se distribuye con el paquete: Magpie es GPL-3.0 y este proyecto es MIT,
+# asi que se descarga de su release oficial igual que el SDK.
+#   https://github.com/Blinue/Magpie
+if (-not (Test-Path "$pkg\tools\magpie\Magpie.exe")) {
+  Write-Host "  Descargando el reescalador Magpie (~11 MB)..." -ForegroundColor Yellow
+  try {
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    $wc = New-Object System.Net.WebClient
+    $wc.Headers.Add("user-agent", "AndroidTV-Portable")
+    $rel = $wc.DownloadString("https://api.github.com/repos/Blinue/Magpie/releases/latest") | ConvertFrom-Json
+
+    # Los portatiles con Snapdragon necesitan la build ARM64 o no arranca
+    $arq = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { 'ARM64' } else { 'x64' }
+    $asset = $rel.assets | Where-Object { $_.name -like "*-$arq.zip" } | Select-Object -First 1
+    if (-not $asset) { throw "no hay build $arq en la release $($rel.tag_name)" }
+
+    $zip = Join-Path $env:TEMP $asset.name
+    if (-not (Test-Path $zip) -or (Get-Item $zip).Length -ne $asset.size) {
+      $wc.DownloadFile($asset.browser_download_url, $zip)
+    }
+    New-Item -ItemType Directory -Force -Path "$pkg\tools\magpie" | Out-Null
+    if (Test-Path $7z) {
+      & $7z x $zip -o"$pkg\tools\magpie" -y | Out-Null
+    } else {
+      Expand-Archive -Path $zip -DestinationPath "$pkg\tools\magpie" -Force
+    }
+    # Algunas releases traen todo dentro de una subcarpeta; se aplana
+    if (-not (Test-Path "$pkg\tools\magpie\Magpie.exe")) {
+      $hallado = Get-ChildItem "$pkg\tools\magpie" -Recurse -Filter Magpie.exe |
+                 Select-Object -First 1
+      if ($hallado) {
+        Get-ChildItem $hallado.DirectoryName | Move-Item -Destination "$pkg\tools\magpie" -Force
+      }
+    }
+    if (Test-Path "$pkg\tools\magpie\Magpie.exe") {
+      Write-Host "  Magpie $($rel.tag_name) descargado ($arq)." -ForegroundColor Green
+    }
+  } catch {
+    Write-Host "  AVISO: no se pudo descargar Magpie: $_" -ForegroundColor Red
+    Write-Host "  El TV funcionara, pero SIN pantalla completa y SIN tactil." -ForegroundColor Red
+    Write-Host "  Bajalo a mano de https://github.com/Blinue/Magpie/releases" -ForegroundColor Red
+    Write-Host "  y descomprimelo en tools\magpie\, luego ejecuta ACTUALIZAR.bat" -ForegroundColor Red
+  }
+}
+
 if (Test-Path "$pkg\tools\magpie\Magpie.exe") {
   Write-Host "  Copiando reescalador (Magpie)..." -ForegroundColor Yellow
   robocopy "$pkg\tools\magpie" "$avdHome\magpie" /E /NFL /NDL /NJH /NJS /NP | Out-Null

@@ -1,0 +1,39 @@
+{
+  "theme": 2,
+  "countdownSeconds": 3,
+  "developerMode": false,
+  "debugMode": false,
+  "benchmarkMode": false,
+  "profiles": [
+    {
+      "scalingMode": 0,
+      "captureMethod": 0,
+      "multiMonitorUsage": 0,
+      "initialWindowedScaleFactor": 0,
+      "customInitialWindowedScaleFactor": 1.25,
+      "graphicsCardId": {
+        "idx": -1,
+        "vendorId": 0,
+        "deviceId": 0
+      },
+      "frameRateLimiterEnabled": false,
+      "maxFrameRate": 60.0,
+      "3DGameMode": false,
+      "captureTitleBar": false,
+      "adjustCursorSpeed": true,
+      "disableDirectFlip": false,
+      "cursorScaling": 2,
+      "customCursorScaling": 1.0,
+      "cursorInterpolationMode": 0,
+      "autoHideCursorEnabled": false,
+      "autoHideCursorDelay": 3.0,
+      "croppingEnabled": false,
+      "cropping": {
+        "left": 0.0,
+        "top": 0.0,
+        "right": 0.0,
+        "bottom": 0.0
+      }
+    }
+  ]
+}

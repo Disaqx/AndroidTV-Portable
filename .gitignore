@@ -23,3 +23,6 @@ tv.ini
 # Windows
 Thumbs.db
 desktop.ini
+
+# Magpie se descarga en la instalacion, no se versiona (GPL-3.0)
+tools/magpie/
