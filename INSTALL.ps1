@@ -311,9 +311,53 @@ function Install-SdkDesdeGoogle {
 if (-not $SoloScripts) {
   Write-Host "[0/5] Verificando aceleracion por hardware (WHPX)..." -ForegroundColor Yellow
   $whpx = (Get-WindowsOptionalFeature -Online -FeatureName HypervisorPlatform -ErrorAction SilentlyContinue)
-  if ($whpx -and $whpx.State -eq 'Enabled') {
-    Write-Host "  WHPX activado." -ForegroundColor Green
-  } else {
+
+  # OJO: que la caracteristica figure como 'Enabled' NO significa que el
+  # hipervisor este corriendo. Activarla exige REINICIAR, y hasta entonces
+  # HyperVisorPresent sigue en False y el emulador muere con
+  # "x86 emulation currently requires hardware acceleration".
+  # Comprobar solo el estado de la caracteristica daba un "WHPX activado" en
+  # verde mientras el emulador no podia arrancar de ninguna manera.
+  $corriendo = $false
+  try {
+    $corriendo = [bool](Get-CimInstance Win32_ComputerSystem).HypervisorPresent
+  } catch {}
+
+  if ($whpx -and $whpx.State -eq 'Enabled' -and $corriendo) {
+    Write-Host "  WHPX activado y en marcha." -ForegroundColor Green
+  }
+  elseif ($whpx -and $whpx.State -eq 'Enabled' -and -not $corriendo) {
+    Write-Host ""
+    Write-Host "  ============================================================" -ForegroundColor Red
+    Write-Host "   HAY QUE REINICIAR EL EQUIPO ANTES DE CONTINUAR" -ForegroundColor Red
+    Write-Host "  ============================================================" -ForegroundColor Red
+    Write-Host "  La virtualizacion esta activada, pero el hipervisor de Windows" -ForegroundColor Yellow
+    Write-Host "  todavia no esta cargado. Eso solo ocurre al reiniciar." -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "  Sin el, el emulador NO puede arrancar: fallara con" -ForegroundColor Yellow
+    Write-Host "  'x86 emulation currently requires hardware acceleration'." -ForegroundColor Yellow
+    Write-Host ""
+    # Si la virtualizacion estuviera desactivada en la BIOS, reiniciar no
+    # arregla nada: hay que entrar en la BIOS. Se distingue el caso.
+    try {
+      # Se compara contra $false EXPLICITAMENTE: la propiedad viene vacia
+      # cuando el hipervisor ya esta cargado, y un '-not $null' daria un aviso
+      # de BIOS falso en equipos donde la BIOS esta perfectamente configurada.
+      $cs = Get-CimInstance Win32_ComputerSystem
+      if ($cs.VirtualizationFirmwareEnabled -eq $false) {
+        Write-Host "  ADEMAS: la virtualizacion esta DESACTIVADA en la BIOS." -ForegroundColor Red
+        Write-Host "  Reiniciar no bastara: entra en la BIOS y activa" -ForegroundColor Red
+        Write-Host "  VT-x (Intel) o SVM / AMD-V (AMD)." -ForegroundColor Red
+        Write-Host ""
+      }
+    } catch {}
+    Write-Host "  Reinicia y vuelve a ejecutar INSTALAR.bat." -ForegroundColor Yellow
+    Write-Host "  Lo ya descargado se conserva: la segunda vez es rapida." -ForegroundColor DarkGray
+    Write-Host ""
+    Read-Host "  Pulsa Enter para salir"
+    exit 1
+  }
+  else {
     Write-Host "  WHPX NO esta activado. Intentando activarlo (requiere permisos de admin)..." -ForegroundColor Yellow
     try {
       $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
