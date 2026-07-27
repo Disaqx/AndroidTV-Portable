@@ -1,0 +1,23 @@
+# Los scripts de Windows NECESITAN CRLF.
+# Un .bat con finales LF puede romper al ejecutarse (cmd.exe parte mal las
+# lineas, sobre todo con GOTO y etiquetas), y un .ps1 en LF da problemas con
+# here-strings. Se fuerza CRLF pase lo que pase en el equipo que clone.
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+*.ps1   text eol=crlf
+*.psm1  text eol=crlf
+*.vbs   text eol=crlf
+*.ini   text eol=crlf
+*.txt   text eol=crlf
+
+# Documentacion y codigo multiplataforma: LF
+*.md    text eol=lf
+*.py    text eol=lf
+
+# Binarios: que git no los toque
+*.ico   binary
+*.png   binary
+*.exe   binary
+*.dll   binary
+*.apk   binary
+*.7z    binary
