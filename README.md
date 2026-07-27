@@ -134,6 +134,27 @@ AFTVnews). La app de IPTV no se versiona: no es redistribuible.
 | `ESCALADOR-SI.bat` / `ESCALADOR-NO.bat` | Activa/desactiva el escalador |
 | `PUENTE-MANUAL.bat` | Arranca el puente del mando a la vista, para ver errores |
 | `MEDIR-CALIDAD.bat` | Resolucion y **bitrate real** del canal, y si ese bitrate da para esa resolucion |
+| `DESINSTALAR.bat` | Lo quita todo. El SDK lo pregunta aparte |
+
+## Desinstalar
+
+Doble clic en **`DESINSTALAR.bat`**.
+
+Quita el acceso directo, el dispositivo virtual `AndroidTV`, los scripts que se
+copiaron a `~/.android` y cierra el emulador y el puente del mando si estaban
+corriendo.
+
+**El SDK lo pregunta aparte**, porque son ~9 GB y puede que no sea solo tuyo: si
+detecta Android Studio en el equipo, te avisa de que borrarlo dejara tus otros
+proyectos sin compilar hasta que lo vuelvas a descargar.
+
+> **No borra la carpeta `~/.android` entera, y es a proposito.** Ahi viven
+> tambien tus claves de adb (`adbkey`, `adbkey.pub`) y el `debug.keystore` con
+> el que firmas tus apps. Perderlos significa no poder actualizar una app que ya
+> hayas publicado y tener que volver a autorizar cada dispositivo. El
+> desinstalador borra fichero a fichero, con lista explicita.
+
+La carpeta del paquete no se toca: borrala tu si ya no la quieres.
 
 ## Por que la ventana nativa y no scrcpy
 
