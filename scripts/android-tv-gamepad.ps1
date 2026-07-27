@@ -137,6 +137,13 @@ public static class GP {
     return t.StartsWith("Android Emulator") && t.Contains(":");
   }
 
+  // ---------- teclado, raton y tactil ----------
+  // Se consultan en el MISMO bucle que el mando, asi no hace falta un hook
+  // global ni una ventana con cola de mensajes.
+  [DllImport("user32.dll")] public static extern short GetAsyncKeyState(int vKey);
+  [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X, Y; }
+  [DllImport("user32.dll")] public static extern bool GetCursorPos(out POINT p);
+
   [DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr h, IntPtr a, int x, int y, int cx, int cy, uint f);
   [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
   [DllImport("user32.dll")] public static extern bool BringWindowToTop(IntPtr h);
@@ -421,6 +428,20 @@ $nextRepeat = [DateTime]::MinValue
 $prevBtns   = 0
 $volDir     = 0
 $nextVol    = [DateTime]::MinValue
+
+# Estado de los atajos de teclado, raton y tactil (flanco de subida)
+$prevAtajo   = @{ kbHome = $false; kbBack = $false; msHome = $false; msBack = $false }
+$prevClick   = $false
+$ultimoToque = [DateTime]::MinValue
+
+# Tamanio de pantalla, para saber donde cae la esquina del doble toque.
+# Se lee una sola vez: si cambias de resolucion, reinicia el TV.
+$scrW = [int](Get-CimInstance Win32_VideoController |
+              Select-Object -First 1 -ExpandProperty CurrentHorizontalResolution)
+$scrH = [int](Get-CimInstance Win32_VideoController |
+              Select-Object -First 1 -ExpandProperty CurrentVerticalResolution)
+if (-not $scrW -or $scrW -le 0) { $scrW = 1920 }
+if (-not $scrH -or $scrH -le 0) { $scrH = 1080 }
 $loopCount  = 0
 $emuGone    = 0
 $nextHide     = [DateTime]::MinValue   # proxima revision de la barra de Qt
@@ -612,6 +633,58 @@ while ($true) {
     }
     $volDir = $volNow
   } else { $volDir = 0 }
+
+  # --- Teclado, raton y tactil ---------------------------------------------
+  # El mando no es la unica forma de manejar el TV: en un PC de escritorio no
+  # siempre hay uno a mano, y con tactil no hay ningun boton fisico. Aqui van
+  # las tres alternativas para HOME y ATRAS.
+  #
+  #   Teclado : Ctrl+Alt+H = HOME     Ctrl+Alt+B = ATRAS
+  #   Raton   : boton lateral 2 = HOME   boton lateral 1 = ATRAS
+  #   Tactil  : dos toques seguidos en la esquina superior IZQUIERDA = HOME
+  #
+  # Se eligieron combinaciones que Android TV no usa, para no pisar nada dentro
+  # de las apps.
+  $VK_LBUTTON=0x01; $VK_XBUTTON1=0x05; $VK_XBUTTON2=0x06
+  $VK_CONTROL=0x11; $VK_ALT=0x12; $VK_H=0x48; $VK_B=0x42
+
+  function Down([int]$vk) { return ([GP]::GetAsyncKeyState($vk) -band 0x8000) -ne 0 }
+
+  $ctrlAlt = (Down $VK_CONTROL) -and (Down $VK_ALT)
+
+  # Flanco de subida: se dispara al pulsar, no mientras se mantiene
+  $atajos = @(
+    @{ k = 'kbHome'; on = ($ctrlAlt -and (Down $VK_H));  code = 'KEYCODE_HOME' },
+    @{ k = 'kbBack'; on = ($ctrlAlt -and (Down $VK_B));  code = 'KEYCODE_BACK' },
+    @{ k = 'msHome'; on = (Down $VK_XBUTTON2);           code = 'KEYCODE_HOME' },
+    @{ k = 'msBack'; on = (Down $VK_XBUTTON1);           code = 'KEYCODE_BACK' }
+  )
+  foreach ($a in $atajos) {
+    if ($a.on -and -not $prevAtajo[$a.k]) { Send-Key $a.code; Log "atajo -> $($a.code)" }
+    $prevAtajo[$a.k] = $a.on
+  }
+
+  # Tactil: TouchHelper traduce el toque a un clic normal, asi que basta con
+  # mirar clics. Dos en menos de 500 ms dentro del 8% superior izquierdo de la
+  # pantalla = HOME. Esa zona no tiene controles en ninguna app de TV.
+  $lb = Down $VK_LBUTTON
+  if ($lb -and -not $prevClick) {
+    $p = New-Object GP+POINT
+    if ([GP]::GetCursorPos([ref]$p)) {
+      $enEsquina = ($p.X -lt ($scrW * 0.08)) -and ($p.Y -lt ($scrH * 0.08))
+      $ahora = Get-Date
+      if ($enEsquina) {
+        if (($ahora - $ultimoToque).TotalMilliseconds -lt 500) {
+          Send-Key 'KEYCODE_HOME'
+          Log "doble toque en esquina -> HOME"
+          $ultimoToque = [DateTime]::MinValue   # evita que un 3er toque repita
+        } else {
+          $ultimoToque = $ahora
+        }
+      }
+    }
+  }
+  $prevClick = $lb
 
   Start-Sleep -Milliseconds 16
 }

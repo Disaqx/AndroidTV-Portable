@@ -156,6 +156,61 @@ proyectos sin compilar hasta que lo vuelvas a descargar.
 
 La carpeta del paquete no se toca: borrala tu si ya no la quieres.
 
+## Controles
+
+### Mando
+
+| Boton | Accion |
+|---|---|
+| Cruceta / stick | Navegar |
+| A | Aceptar |
+| B | Atras |
+| Start | Inicio |
+| LB / RB | Bajar / subir volumen (mantener repite) |
+| View + Start | Reiniciar el TV (recupera el audio si se pierde) |
+
+### Teclado y raton
+
+Para cuando no hay un mando a mano:
+
+| | Inicio | Atras |
+|---|---|---|
+| **Teclado** | `Ctrl + Alt + H` | `Ctrl + Alt + B` |
+| **Raton** | Boton lateral 2 (adelante) | Boton lateral 1 (atras) |
+
+Son combinaciones que Android TV no usa, asi que no pisan nada dentro de las
+apps.
+
+### Tactil
+
+**Dos toques seguidos en la esquina superior izquierda** = Inicio.
+
+Con tactil no hay ningun boton fisico, y Android TV no dibuja barra de
+navegacion. Se eligio esa esquina porque ninguna app de TV pone controles ahi.
+La zona es el 8% de la pantalla: en 2560x1600 son unos 205x128 px, suficiente
+para un dedo sin que se dispare por accidente.
+
+> Todo esto lo gestiona el puente del mando, que corre oculto. Si algo no
+> responde, `PUENTE-MANUAL.bat` lo arranca a la vista para ver que ocurre, y
+> `DIAGNOSTICO.bat` muestra en vivo lo que reporta cada boton.
+
+## Compartir el paquete con alguien
+
+**`EMPAQUETAR.bat`** genera un ZIP en tu escritorio listo para pasar por USB,
+Drive o donde quieras.
+
+| Comando | Que incluye | Tamano |
+|---|---|---|
+| `EMPAQUETAR.bat` | Tus apps de `apps\`, sin el SDK | ~50 MB |
+| `EMPAQUETAR.bat -ConSdk` | Todo. **Instala sin internet** | ~1 GB |
+| `EMPAQUETAR.bat -SinApps` | Limpio, igual que el de Releases | ~15 MB |
+
+A diferencia de lo que se publica aqui, ese ZIP **si lleva tus `.apk`**. Esa es
+la diferencia entre pasarle una copia a un amigo y redistribuir software de
+terceros a todo internet: lo primero lo decides tu.
+
+Por eso el script vive en el repositorio pero su resultado no.
+
 ## El reescalador (Magpie)
 
 El AVD se crea a 1920 px de ancho a proposito: la imagen de Android TV no dibuja
