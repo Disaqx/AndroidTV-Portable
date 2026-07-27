@@ -65,13 +65,16 @@ function Get-PaqueteEstable {
     if (-not $canal -or $canal.ref -ne "channel-0") { continue }   # solo estable
     $r = $pkg.SelectSingleNode("revision")
     $rev = 0
+    $partes = @()
     if ($r) {
       foreach ($c in @("major","minor","micro")) {
         $n = $r.SelectSingleNode($c)
         $val = 0; if ($n) { $val = [int]$n.InnerText }
         $rev = $rev * 1000 + $val
+        if ($n) { $partes += $val }
       }
     }
+    $version = if ($partes.Count) { $partes -join '.' } else { '1' }
     foreach ($a in $pkg.SelectNodes(".//archive")) {
       $ho = $a.SelectSingleNode("host-os")
       # las imagenes de sistema no declaran host-os: valen para cualquiera
@@ -80,9 +83,10 @@ function Get-PaqueteEstable {
         $mejorRev = $rev
         $c = $a.SelectSingleNode("complete")
         $mejor = @{
-          Url  = $UrlBase + $c.SelectSingleNode("url").InnerText
-          Sha1 = $c.SelectSingleNode("checksum").InnerText
-          Size = [long]$c.SelectSingleNode("size").InnerText
+          Url     = $UrlBase + $c.SelectSingleNode("url").InnerText
+          Sha1    = $c.SelectSingleNode("checksum").InnerText
+          Size    = [long]$c.SelectSingleNode("size").InnerText
+          Version = $version
         }
       }
       break
@@ -143,6 +147,88 @@ function Get-Componente {
   return $true
 }
 
+# ---------------------------------------------------------------------------
+#  package.xml: el fichero que hace que el SDK "exista" para el emulador
+#
+#  Los .zip de Google NO lo traen: lo genera sdkmanager al instalar. Sin el, el
+#  emulador no reconoce la imagen de sistema y `emulator -avd AndroidTV` no
+#  arranca nunca — se queda esperando sin dar un error claro.
+#
+#  Por eso un SDK sacado de Android Studio funciona y uno descargado en crudo
+#  no, aunque los ficheros sean identicos.
+# ---------------------------------------------------------------------------
+
+function Write-PackageXml {
+  <#
+    Escribe el package.xml de un componente ya extraido.
+    $Path    ruta logica del paquete, p.ej. "emulator" o "system-images;android-36;android-tv;x86"
+    $Destino carpeta donde se extrajo
+    $Version "36.6.11" o "4"
+    $Nombre  nombre visible
+    $SysImg  si es una imagen de sistema, usa el tipo y los detalles que exige el emulador
+  #>
+  param(
+    [string]$Path, [string]$Destino, [string]$Version,
+    [string]$Nombre, [switch]$SysImg
+  )
+  $destinoXml = Join-Path $Destino 'package.xml'
+  if (Test-Path $destinoXml) { return }   # ya lo puso Android Studio: no tocar
+
+  # Los prefijos van declarados AQUI DENTRO a proposito: si dependieran de una
+  # variable de fuera y esta no llegara, el XML sale sin espacios de nombres y
+  # el parser lo rechaza con "'ns2' is an undeclared prefix". Con el fichero
+  # invalido el emulador vuelve a no reconocer el SDK, que es justo el fallo
+  # que esto arregla.
+  $ns = @(
+    'xmlns:ns2="http://schemas.android.com/repository/android/common/02"'
+    'xmlns:ns3="http://schemas.android.com/repository/android/common/01"'
+    'xmlns:ns4="http://schemas.android.com/repository/android/generic/01"'
+    'xmlns:ns5="http://schemas.android.com/repository/android/generic/02"'
+    'xmlns:ns6="http://schemas.android.com/sdk/android/repo/repository2/04"'
+    'xmlns:ns7="http://schemas.android.com/sdk/android/repo/repository2/01"'
+    'xmlns:ns8="http://schemas.android.com/sdk/android/repo/repository2/02"'
+    'xmlns:ns9="http://schemas.android.com/sdk/android/repo/repository2/03"'
+    'xmlns:ns10="http://schemas.android.com/sdk/android/repo/addon2/01"'
+    'xmlns:ns11="http://schemas.android.com/sdk/android/repo/addon2/02"'
+    'xmlns:ns12="http://schemas.android.com/sdk/android/repo/addon2/03"'
+    'xmlns:ns13="http://schemas.android.com/sdk/android/repo/addon2/04"'
+    'xmlns:ns14="http://schemas.android.com/sdk/android/repo/sys-img2/05"'
+    'xmlns:ns15="http://schemas.android.com/sdk/android/repo/sys-img2/04"'
+    'xmlns:ns16="http://schemas.android.com/sdk/android/repo/sys-img2/03"'
+    'xmlns:ns17="http://schemas.android.com/sdk/android/repo/sys-img2/02"'
+    'xmlns:ns18="http://schemas.android.com/sdk/android/repo/sys-img2/01"'
+  ) -join ' '
+
+  $v = ($Version -split '\.')
+  $rev = "<major>$($v[0])</major>"
+  if ($v.Count -gt 1) { $rev += "<minor>$($v[1])</minor>" }
+  if ($v.Count -gt 2) { $rev += "<micro>$($v[2])</micro>" }
+
+  if ($SysImg) {
+    $detalles = @'
+<type-details xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="ns14:sysImgDetailsType"><api-level>36</api-level><base-extension>true</base-extension><tag><id>android-tv</id><display>Android TV</display></tag><abi>x86</abi><abis>x86</abis></type-details>
+'@
+  } else {
+    $detalles = '<type-details xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="ns5:genericDetailsType"/>'
+  }
+
+  # La licencia se referencia por id; no se reproduce el texto completo de
+  # Google aqui. El usuario la acepta al descargar de sus servidores.
+  $xml = @"
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ns2:repository $ns>
+<license id="android-sdk-license" type="text">Android SDK License. Ver https://developer.android.com/studio/terms</license>
+<localPackage path="$Path" obsolete="false">
+$($detalles.Trim())
+<revision>$rev</revision>
+<display-name>$Nombre</display-name>
+<uses-license ref="android-sdk-license"/>
+</localPackage>
+</ns2:repository>
+"@
+  Set-Content -Path $destinoXml -Value $xml -Encoding UTF8
+}
+
 function Install-SdkDesdeGoogle {
   Write-Host "  El paquete no trae sdk.7z: se bajara el SDK de Google (~1,3 GB)." -ForegroundColor Yellow
   Write-Host "  Solo pasa la primera vez. Con 50 Mbps es cosa de 1-2 minutos;" -ForegroundColor DarkGray
@@ -187,11 +273,17 @@ function Install-SdkDesdeGoogle {
 
   $comps = @(
     @{ Info = (Get-PaqueteEstable $xmlRepo "platform-tools" $RepoBase)
-       Dest = $sdk; Nombre = "platform-tools" },
+       Dest = $sdk; Nombre = "platform-tools"
+       Pkg = "platform-tools"; Final = "$sdk\platform-tools"
+       Titulo = "Android SDK Platform-Tools" },
     @{ Info = (Get-PaqueteEstable $xmlRepo "emulator" $RepoBase)
-       Dest = $sdk; Nombre = "emulator" },
+       Dest = $sdk; Nombre = "emulator"
+       Pkg = "emulator"; Final = "$sdk\emulator"
+       Titulo = "Android Emulator" },
     @{ Info = (Get-PaqueteEstable $xmlSys "system-images;android-36;android-tv;x86" $SysImgBase)
-       Dest = "$sdk\system-images\android-36\android-tv"; Nombre = "imagen de Android TV" }
+       Dest = "$sdk\system-images\android-36\android-tv"; Nombre = "imagen de Android TV"
+       Pkg = "system-images;android-36;android-tv;x86"; Final = $sysDir
+       Titulo = "Android TV Intel x86 Atom System Image"; SysImg = $true }
   )
 
   $i = 0
@@ -203,6 +295,10 @@ function Install-SdkDesdeGoogle {
     }
     Write-Host "    ($i/3) $($c.Nombre)" -ForegroundColor Cyan
     if (-not (Get-Componente $c.Info $c.Dest $c.Nombre $cache)) { return $false }
+
+    # Sin package.xml el emulador no reconoce lo que acabamos de extraer
+    Write-PackageXml -Path $c.Pkg -Destino $c.Final -Version $c.Info.Version `
+                     -Nombre $c.Titulo -SysImg:([bool]$c.SysImg)
   }
 
   Write-Host "  SDK descargado e instalado." -ForegroundColor Green
