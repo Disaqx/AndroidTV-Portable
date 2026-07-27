@@ -54,11 +54,24 @@ function Limpiar-DatosDeFallo {
   Remove-Item -Recurse -Force "$env:TEMP\AndroidEmulator" -ErrorAction SilentlyContinue
 }
 
+# MODO DE GPU.  Linea  gpu=<modo>  en tv.ini
+# Por defecto vacio = 'auto', que elige Vulkan sobre la GPU real y es lo mas
+# rapido. Pero hay drivers —vistos en AMD recientes— con los que el emulador
+# se cae nada mas inicializar Vulkan, sin mensaje util. El instalador detecta
+# ese caso y escribe aqui  gpu=swangle , que renderiza con SwiftShader en vez
+# de usar el Vulkan del driver: algo menos eficiente, pero arranca siempre.
+$gpuModo = ''
+if (Test-Path $tvIniPath) {
+  $mg = (Get-Content $tvIniPath | Select-String '^\s*gpu\s*=\s*(\S+)')
+  if ($mg) { $gpuModo = $mg.Matches[0].Groups[1].Value }
+}
+
 function Start-Emulador($rapido) {
   Limpiar-DatosDeFallo
   $a = @('-avd', 'AndroidTV', '-no-metrics')
   if (-not $rapido) { $a += '-no-snapshot' }
   if ($audio) { $a += @('-audio', $audio) }
+  if ($gpuModo) { $a += @('-gpu', $gpuModo) }
   Start-Process "$sdk\emulator\emulator.exe" -ArgumentList $a
 }
 

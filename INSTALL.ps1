@@ -686,28 +686,67 @@ if (-not $SoloScripts) {
   # instalador solo puede decir "no aparecio". Con el log sabemos por que.
   $emuLog = "$avdHome\emulator-arranque.log"
   $emuErr = "$avdHome\emulator-arranque.err"
-  if (-not ((& $adb devices) -match 'emulator-')) {
-    Remove-Item $emuLog, $emuErr -Force -ErrorAction SilentlyContinue
-    Start-Process $emu -ArgumentList '-avd','AndroidTV','-no-snapshot','-verbose' `
-                  -RedirectStandardOutput $emuLog -RedirectStandardError $emuErr `
-                  -WindowStyle Normal
+
+  # MODOS DE GPU, del mas rapido al mas compatible.
+  #   auto            Vulkan sobre la GPU real. Lo mejor... cuando funciona.
+  #   swangle         ANGLE + SwiftShader: esquiva el Vulkan del driver.
+  #   swiftshader     Todo por software. Lento, pero arranca hasta sin GPU.
+  #
+  # Hay drivers —vistos en AMD recientes— con los que el emulador se cae nada
+  # mas inicializar Vulkan, sin mensaje util: solo "closed unexpectedly". Como
+  # depende del driver y no del modelo de tarjeta, no se puede decidir por
+  # adelantado: se prueban en orden y se recuerda el que funcione.
+  $modosGpu = @('auto', 'swangle', 'swiftshader')
+  $script:serial = ''
+  $gpuBueno = ''
+
+  foreach ($modo in $modosGpu) {
+    if ($serial) { break }
+    if (-not ((& $adb devices) -match 'emulator-')) {
+      Remove-Item $emuLog, $emuErr -Force -ErrorAction SilentlyContinue
+      $argsEmu = @('-avd','AndroidTV','-no-snapshot','-no-metrics','-verbose')
+      if ($modo -ne 'auto') {
+        $argsEmu += @('-gpu', $modo)
+        Write-Host "  Reintentando con GPU en modo '$modo'..." -ForegroundColor Yellow
+      }
+      $proc = Start-Process $emu -ArgumentList $argsEmu -PassThru `
+                            -RedirectStandardOutput $emuLog -RedirectStandardError $emuErr
+    }
+
+    # --- Esperar a que aparezca --------------------------------------------
+    # Se acepta CUALQUIER puerto: si otro emulador ocupa el 5554, el nuestro
+    # sale en el 5556 y antes se daba por perdido. Y se imprime un punto cada
+    # 3 s, porque una consola muda durante minutos parece un cuelgue.
+    Write-Host "  Esperando al emulador" -NoNewline -ForegroundColor DarkGray
+    $deadline = (Get-Date).AddSeconds(300)
+    do {
+      Start-Sleep -Seconds 3
+      Write-Host "." -NoNewline -ForegroundColor DarkGray
+      $line = (& $adb devices | Select-String '^emulator-\d+\s+device')
+      if ($line) { $serial = ($line -split '\s+')[0] }
+      # Si el proceso ya murio, no tiene sentido esperar los 5 minutos:
+      # se pasa al siguiente modo de GPU inmediatamente.
+      $muerto = $proc -and $proc.HasExited
+    } until ($serial -or $muerto -or ((Get-Date) -gt $deadline))
+    Write-Host ""
+
+    if ($serial) { $gpuBueno = $modo; break }
+    if ($muerto) {
+      Write-Host "  El emulador se cerro solo con GPU '$modo'." -ForegroundColor Yellow
+    }
   }
 
-  # --- Esperar a que aparezca ----------------------------------------------
-  # Se acepta CUALQUIER puerto, no solo el 5554: si otro emulador ya ocupa ese
-  # puerto, el nuestro sale en el 5556 y antes se daba por perdido.
-  # Y se imprime un punto cada 3 s: cinco minutos de consola muda parecen un
-  # cuelgue, y el usuario cierra la ventana antes de que termine.
-  Write-Host "  Esperando al emulador" -NoNewline -ForegroundColor DarkGray
-  $script:serial = ''
-  $deadline = (Get-Date).AddSeconds(300)
-  do {
-    Start-Sleep -Seconds 3
-    Write-Host "." -NoNewline -ForegroundColor DarkGray
-    $line = (& $adb devices | Select-String '^emulator-\d+\s+device')
-    if ($line) { $serial = ($line -split '\s+')[0] }
-  } until ($serial -or ((Get-Date) -gt $deadline))
-  Write-Host ""
+  # Se recuerda el modo que funciono para que el acceso directo lo use tambien.
+  # Sin esto el instalador acertaria y el TV volveria a caerse al abrirlo.
+  if ($serial -and $gpuBueno -ne 'auto') {
+    $tvIni = "$avdHome\tv.ini"
+    $lineas = @()
+    if (Test-Path $tvIni) {
+      $lineas = @(Get-Content $tvIni | Where-Object { $_ -notmatch '^\s*gpu\s*=' })
+    }
+    ($lineas + "gpu=$gpuBueno") | Set-Content -Path $tvIni -Encoding ASCII
+    Write-Host "  Guardado gpu=$gpuBueno en tv.ini (tu equipo lo necesita)." -ForegroundColor Green
+  }
 
   if (-not $serial) {
     Write-Host "  El emulador no aparecio en 5 minutos." -ForegroundColor Red
