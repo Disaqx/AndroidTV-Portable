@@ -637,8 +637,16 @@ if (-not $SoloScripts) {
     }
   }
 
+  # La salida del emulador se guarda en un fichero. Sin esto, cuando no
+  # arranca no hay NADA que mirar: el proceso muere en silencio y el
+  # instalador solo puede decir "no aparecio". Con el log sabemos por que.
+  $emuLog = "$avdHome\emulator-arranque.log"
+  $emuErr = "$avdHome\emulator-arranque.err"
   if (-not ((& $adb devices) -match 'emulator-')) {
-    Start-Process $emu -ArgumentList '-avd','AndroidTV','-no-snapshot'
+    Remove-Item $emuLog, $emuErr -Force -ErrorAction SilentlyContinue
+    Start-Process $emu -ArgumentList '-avd','AndroidTV','-no-snapshot','-verbose' `
+                  -RedirectStandardOutput $emuLog -RedirectStandardError $emuErr `
+                  -WindowStyle Normal
   }
 
   # --- Esperar a que aparezca ----------------------------------------------
@@ -659,8 +667,25 @@ if (-not $SoloScripts) {
 
   if (-not $serial) {
     Write-Host "  El emulador no aparecio en 5 minutos." -ForegroundColor Red
-    Write-Host "  Prueba a cerrar cualquier Chrome o emulador abierto y reejecuta." -ForegroundColor Red
-    Write-Host "  Si persiste, ejecuta DIAGNOSTICO.bat y revisa la salida." -ForegroundColor Red
+    Write-Host ""
+    # Lo que el emulador dijo antes de rendirse. Es LA informacion util:
+    # sin esto solo se sabe que no arranco, no por que.
+    foreach ($par in @(@($emuErr, 'ERRORES DEL EMULADOR'), @($emuLog, 'SALIDA DEL EMULADOR'))) {
+      $f = $par[0]
+      if ((Test-Path $f) -and (Get-Item $f).Length -gt 0) {
+        Write-Host "  --- $($par[1]) ---" -ForegroundColor Yellow
+        Get-Content $f -Tail 25 | ForEach-Object { Write-Host "  $_" -ForegroundColor Gray }
+        Write-Host ""
+      }
+    }
+    Write-Host "  El log completo esta en:" -ForegroundColor Yellow
+    Write-Host "    $emuLog" -ForegroundColor Gray
+    Write-Host "    $emuErr" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "  Causas habituales:" -ForegroundColor Yellow
+    Write-Host "   - Virtualizacion desactivada en la BIOS (busca VT-x / SVM / AMD-V)" -ForegroundColor Gray
+    Write-Host "   - Hyper-V o WSL2 en conflicto con WHPX" -ForegroundColor Gray
+    Write-Host "   - Otro emulador o Chrome usando el mismo perfil: cierralos" -ForegroundColor Gray
   } else {
     Write-Host "  Emulador listo en $serial. Esperando a que arranque Android" -NoNewline -ForegroundColor DarkGray
     $deadline = (Get-Date).AddSeconds(180)
