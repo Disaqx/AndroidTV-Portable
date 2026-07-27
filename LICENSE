@@ -19,21 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----------------------------------------------------------------------------
-
-Esta licencia cubre UNICAMENTE el codigo propio de este proyecto: los
-scripts .ps1, los .bat, el generador del icono y la documentacion.
-
-NO cubre el software de terceros que se distribuye o descarga junto a el:
-
-  - 7-Zip (tools/7z.exe, tools/7z.dll)  ->  GNU LGPL, ver tools/LICENSE-7zip.txt
-  - SDK de Android                      ->  Android Software Development Kit
-                                            License Agreement. NO se
-                                            redistribuye: el instalador lo
-                                            descarga de los servidores de
-                                            Google, donde cada usuario acepta
-                                            sus terminos directamente.
-                                            https://developer.android.com/studio/terms
-  - apps/*.apk                          ->  cada una con la licencia de su
-                                            autor. Ver PUBLICAR.md.

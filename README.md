@@ -159,13 +159,7 @@ La instalacion resultante vive en `C:\Users\<tu-usuario>\.android\`.
 El codigo de este proyecto —los `.ps1`, los `.bat`, el generador del icono y la
 documentacion— esta bajo **[MIT](LICENSE)**.
 
-El software de terceros va por su cuenta:
-
-| Componente | Licencia |
-|---|---|
-| 7-Zip (`tools/`) | GNU LGPL — ver [`tools/LICENSE-7zip.txt`](tools/LICENSE-7zip.txt) |
-| SDK de Android | [Android SDK License Agreement](https://developer.android.com/studio/terms). **No se redistribuye**: el instalador lo baja de Google, donde cada usuario acepta sus terminos |
-| `apps/*.apk` | Cada una con la licencia de su autor |
+El software de terceros va por su cuenta: ver **[NOTICE.md](NOTICE.md)**.
 
 ### Que NO hay aqui, y por que
 
