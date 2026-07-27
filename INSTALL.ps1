@@ -144,9 +144,31 @@ function Get-Componente {
 }
 
 function Install-SdkDesdeGoogle {
-  Write-Host "  El paquete no trae sdk.7z: se bajara el SDK de Google (~1,4 GB)." -ForegroundColor Yellow
-  Write-Host "  Solo pasa la primera vez. Con 50 Mbps son unos 5-10 minutos;" -ForegroundColor DarkGray
-  Write-Host "  con 10 Mbps puede irse a 25-30. Se puede reanudar si se corta." -ForegroundColor DarkGray
+  Write-Host "  El paquete no trae sdk.7z: se bajara el SDK de Google (~1,3 GB)." -ForegroundColor Yellow
+  Write-Host "  Solo pasa la primera vez. Con 50 Mbps es cosa de 1-2 minutos;" -ForegroundColor DarkGray
+  Write-Host "  con 10 Mbps puede irse a 20-25. Se puede reanudar si se corta." -ForegroundColor DarkGray
+  Write-Host ""
+
+  # Se descargan 1,3 GB pero al extraer ocupan 9,3 GB (la imagen de sistema
+  # sola son 8,3 GB). Mas los zips en la cache. Se comprueba ANTES de empezar
+  # para no reventar a mitad de la extraccion con el disco lleno.
+  $NECESARIO_GB = 12
+  try {
+    $unidad = (Get-Item $sdk -ErrorAction SilentlyContinue)
+    $letra = if ($unidad) { $unidad.PSDrive.Name } else { (Split-Path $sdk -Qualifier).TrimEnd(':') }
+    $libre = (Get-PSDrive $letra -ErrorAction Stop).Free / 1GB
+    Write-Host ("  Espacio libre en {0}: {1:N1} GB (hacen falta ~{2} GB)" -f $letra, $libre, $NECESARIO_GB) -ForegroundColor DarkGray
+    if ($libre -lt $NECESARIO_GB) {
+      Write-Host ""
+      Write-Host "  AVISO: puede que no haya sitio suficiente." -ForegroundColor Red
+      Write-Host "  El SDK descargado son ~1,3 GB, pero extraido ocupa ~9,3 GB." -ForegroundColor Red
+      Write-Host ""
+      $r = Read-Host "  Continuar de todos modos? (S/N)"
+      if ($r -notmatch '^[sS]') { return $false }
+    }
+  } catch {
+    Write-Host "  (no se pudo comprobar el espacio libre, se continua)" -ForegroundColor DarkGray
+  }
   Write-Host ""
 
   $cache = "$env:TEMP\AndroidTV-sdk-cache"

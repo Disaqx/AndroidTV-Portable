@@ -75,13 +75,18 @@ El instalador resuelve el SDK en cascada, de mas rapido a mas lento:
 | El paquete trae `sdk.7z` | Lo extrae. **Sin internet** | 1-2 min |
 | No hay `sdk.7z` (repo clonado) | Lo baja de Google | 5-30 min segun conexion |
 
-En el tercer caso baja ~1,3 GB repartidos asi:
+En el tercer caso baja ~1,3 GB, que al extraerse ocupan **9,3 GB en disco**:
 
-| Componente | Tamano |
-|---|---:|
-| `platform-tools` | 8 MB |
-| `emulator` | 399 MB |
-| Imagen de sistema Android TV x86 (API 36) | 918 MB |
+| Componente | Descarga | En disco |
+|---|---:|---:|
+| `platform-tools` | 8 MB | 17 MB |
+| `emulator` | 399 MB | 972 MB |
+| Imagen de sistema Android TV x86 (API 36) | 918 MB | **8.344 MB** |
+| **Total** | **1,3 GB** | **9,3 GB** |
+
+> **Ten 12 GB libres.** La imagen de sistema se multiplica por nueve al
+> descomprimirse. El instalador comprueba el espacio antes de empezar y avisa
+> si va justo, para no dejarte el disco lleno a medias.
 
 Cada descarga se **verifica por SHA1** contra el manifiesto de Google y se
 cachea en `%TEMP%\AndroidTV-sdk-cache`, asi que si se corta a mitad no vuelve a
