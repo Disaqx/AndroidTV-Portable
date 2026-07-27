@@ -516,17 +516,65 @@ if (Test-Path "$pkg\tools\magpie\Magpie.exe") {
 if (-not $SoloScripts) {
   Write-Host "[4/5] Arrancando emulador e instalando apps (1a vez ~1-2 min)..." -ForegroundColor Yellow
   & $adb start-server | Out-Null
-  if (-not ((& $adb devices) -match 'emulator-5554')) {
+
+  # --- Limpiar bloqueos huerfanos ------------------------------------------
+  # Si el emulador no se cerro limpiamente la vez anterior (cierre forzado,
+  # cuelgue, apagon), deja bloqueos en el AVD. Al arrancar de nuevo cree que el
+  # 5554 sigue ocupado y se abre en el 5556 — y esta funcion esperaba justo al
+  # 5554, asi que se quedaba mirando 5 minutos y se rendia sin decir por que.
+  if (-not ((& $adb devices) -match 'emulator-')) {
+    $avdDirLock = "$avdHome\avd\AndroidTV.avd"
+    foreach ($lock in @('hardware-qemu.ini.lock', 'multiinstance.lock', 'hardware-qemu.ini.lock2')) {
+      $ruta = Join-Path $avdDirLock $lock
+      if (-not (Test-Path $ruta)) { continue }
+      # Si el pid del bloqueo sigue vivo, NO se toca: hay un emulador de verdad
+      $vivo = $false
+      $pidFile = Join-Path $ruta 'pid'
+      if (Test-Path $pidFile) {
+        $p = (Get-Content $pidFile -Raw -ErrorAction SilentlyContinue).Trim()
+        if ($p -and (Get-Process -Id $p -ErrorAction SilentlyContinue)) { $vivo = $true }
+      }
+      if (-not $vivo) {
+        Remove-Item $ruta -Recurse -Force -ErrorAction SilentlyContinue
+        Write-Host "  Limpiado bloqueo huerfano: $lock" -ForegroundColor DarkGray
+      }
+    }
+  }
+
+  if (-not ((& $adb devices) -match 'emulator-')) {
     Start-Process $emu -ArgumentList '-avd','AndroidTV','-no-snapshot'
   }
+
+  # --- Esperar a que aparezca ----------------------------------------------
+  # Se acepta CUALQUIER puerto, no solo el 5554: si otro emulador ya ocupa ese
+  # puerto, el nuestro sale en el 5556 y antes se daba por perdido.
+  # Y se imprime un punto cada 3 s: cinco minutos de consola muda parecen un
+  # cuelgue, y el usuario cierra la ventana antes de que termine.
+  Write-Host "  Esperando al emulador" -NoNewline -ForegroundColor DarkGray
+  $script:serial = ''
   $deadline = (Get-Date).AddSeconds(300)
   do {
     Start-Sleep -Seconds 3
-    $line  = (& $adb devices | Select-String 'emulator-5554')
-    $state = if ($line) { ($line -split '\s+')[-1] } else { '' }
-  } until (($state -eq 'device') -or ((Get-Date) -gt $deadline))
-  $deadline = (Get-Date).AddSeconds(180)
-  do { Start-Sleep -Seconds 3; $boot = & $adb -s emulator-5554 shell getprop sys.boot_completed 2>$null } until (($boot -match '1') -or ((Get-Date) -gt $deadline))
+    Write-Host "." -NoNewline -ForegroundColor DarkGray
+    $line = (& $adb devices | Select-String '^emulator-\d+\s+device')
+    if ($line) { $serial = ($line -split '\s+')[0] }
+  } until ($serial -or ((Get-Date) -gt $deadline))
+  Write-Host ""
+
+  if (-not $serial) {
+    Write-Host "  El emulador no aparecio en 5 minutos." -ForegroundColor Red
+    Write-Host "  Prueba a cerrar cualquier Chrome o emulador abierto y reejecuta." -ForegroundColor Red
+    Write-Host "  Si persiste, ejecuta DIAGNOSTICO.bat y revisa la salida." -ForegroundColor Red
+  } else {
+    Write-Host "  Emulador listo en $serial. Esperando a que arranque Android" -NoNewline -ForegroundColor DarkGray
+    $deadline = (Get-Date).AddSeconds(180)
+    do {
+      Start-Sleep -Seconds 3
+      Write-Host "." -NoNewline -ForegroundColor DarkGray
+      $boot = & $adb -s $serial shell getprop sys.boot_completed 2>$null
+    } until (($boot -match '1') -or ((Get-Date) -gt $deadline))
+    Write-Host ""
+  }
 
   if ($boot -match '1') {
     $apks = @(Get-ChildItem "$pkg\apps\*.apk" -ErrorAction SilentlyContinue)
@@ -536,7 +584,7 @@ if (-not $SoloScripts) {
     }
     foreach ($a in $apks) {
       Write-Host ("  Instalando {0}..." -f $a.Name)
-      & $adb -s emulator-5554 install -r $a.FullName | Out-Null
+      & $adb -s $serial install -r $a.FullName | Out-Null
     }
     if ($apks.Count -gt 0) { Write-Host "  Apps instaladas." -ForegroundColor Green }
   } else {
@@ -549,16 +597,31 @@ if (-not $SoloScripts) {
   # arranco, el usuario lo usa asi, y concluye que la optimizacion no funciona.
   # El TV de verdad lo lanza el acceso directo del escritorio, que es quien
   # coloca la ventana y llama al reescalador.
-  Write-Host "  Cerrando el emulador de instalacion..." -ForegroundColor Yellow
-  & $adb -s emulator-5554 emu kill 2>$null | Out-Null
-  $espera = (Get-Date).AddSeconds(20)
-  do {
-    Start-Sleep -Seconds 2
-    $sigue = (& $adb devices) -match 'emulator-5554'
-  } until ((-not $sigue) -or ((Get-Date) -gt $espera))
-  if ($sigue) {
-    Get-Process -Name qemu-system-x86_64, emulator -ErrorAction SilentlyContinue |
-      ForEach-Object { try { $_.Kill() } catch {} }
+  if ($serial) {
+    Write-Host "  Cerrando el emulador de instalacion..." -ForegroundColor Yellow
+    & $adb -s $serial emu kill 2>$null | Out-Null
+
+    # 'emu kill' es un apagado ORDENADO y puede tardar: se le da margen de
+    # sobra. Solo si no obedece se mata a la fuerza, y entonces hay que barrer
+    # los bloqueos que deja, o la siguiente instalacion arranca el emulador en
+    # otro puerto y parece colgada. Esto ultimo ya rompio una instalacion real.
+    $espera = (Get-Date).AddSeconds(45)
+    do {
+      Start-Sleep -Seconds 2
+      $sigue = (& $adb devices) -match [regex]::Escape($serial)
+    } until ((-not $sigue) -or ((Get-Date) -gt $espera))
+
+    if ($sigue) {
+      Write-Host "  No respondio al cierre ordenado, forzando..." -ForegroundColor Yellow
+      Get-Process -Name qemu-system-x86_64, emulator -ErrorAction SilentlyContinue |
+        ForEach-Object { try { $_.Kill() } catch {} }
+      Start-Sleep -Seconds 3
+      $avdDirLock = "$avdHome\avd\AndroidTV.avd"
+      foreach ($lock in @('hardware-qemu.ini.lock', 'multiinstance.lock', 'hardware-qemu.ini.lock2')) {
+        Remove-Item (Join-Path $avdDirLock $lock) -Recurse -Force -ErrorAction SilentlyContinue
+      }
+      Write-Host "  Bloqueos del AVD limpiados." -ForegroundColor DarkGray
+    }
   }
   Write-Host "  Listo. Abre el TV desde el acceso directo del escritorio." -ForegroundColor Green
 }
