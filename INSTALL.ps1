@@ -529,14 +529,38 @@ if (-not $SoloScripts) {
   do { Start-Sleep -Seconds 3; $boot = & $adb -s emulator-5554 shell getprop sys.boot_completed 2>$null } until (($boot -match '1') -or ((Get-Date) -gt $deadline))
 
   if ($boot -match '1') {
-    Get-ChildItem "$pkg\apps\*.apk" -ErrorAction SilentlyContinue | ForEach-Object {
-      Write-Host ("  Instalando {0}..." -f $_.Name)
-      & $adb -s emulator-5554 install -r $_.FullName | Out-Null
+    $apks = @(Get-ChildItem "$pkg\apps\*.apk" -ErrorAction SilentlyContinue)
+    if ($apks.Count -eq 0) {
+      Write-Host "  No hay ningun .apk en apps\, no se instala nada." -ForegroundColor Yellow
+      Write-Host "  Deja ahi los que quieras y ejecuta ACTUALIZAR.bat." -ForegroundColor Yellow
     }
-    Write-Host "  Apps instaladas." -ForegroundColor Green
+    foreach ($a in $apks) {
+      Write-Host ("  Instalando {0}..." -f $a.Name)
+      & $adb -s emulator-5554 install -r $a.FullName | Out-Null
+    }
+    if ($apks.Count -gt 0) { Write-Host "  Apps instaladas." -ForegroundColor Green }
   } else {
     Write-Host "  El emulador no arranco a tiempo; instala las apps luego con 'adb install'." -ForegroundColor Yellow
   }
+
+  # Cerrar el emulador que abrimos NOSOTROS.
+  # Este arranque es solo para poder hacer 'adb install': es el emulador pelado,
+  # sin pantalla completa y sin Magpie. Si se deja abierto parece que el TV ya
+  # arranco, el usuario lo usa asi, y concluye que la optimizacion no funciona.
+  # El TV de verdad lo lanza el acceso directo del escritorio, que es quien
+  # coloca la ventana y llama al reescalador.
+  Write-Host "  Cerrando el emulador de instalacion..." -ForegroundColor Yellow
+  & $adb -s emulator-5554 emu kill 2>$null | Out-Null
+  $espera = (Get-Date).AddSeconds(20)
+  do {
+    Start-Sleep -Seconds 2
+    $sigue = (& $adb devices) -match 'emulator-5554'
+  } until ((-not $sigue) -or ((Get-Date) -gt $espera))
+  if ($sigue) {
+    Get-Process -Name qemu-system-x86_64, emulator -ErrorAction SilentlyContinue |
+      ForEach-Object { try { $_.Kill() } catch {} }
+  }
+  Write-Host "  Listo. Abre el TV desde el acceso directo del escritorio." -ForegroundColor Green
 }
 
 # ---------------------------------------------------------------------------
