@@ -715,7 +715,11 @@ if (-not $SoloScripts) {
       # despues de que el emulador se haya caido probando modos de GPU.
       Remove-Item -Recurse -Force "$env:TEMP\AndroidEmulator" -ErrorAction SilentlyContinue
 
-      $argsEmu = @('-avd','AndroidTV','-no-snapshot','-no-metrics','-verbose')
+      # -crash-report-mode disabled: al probar modos de GPU el emulador se cae
+      # a proposito, y sin esto salta el dialogo "closed unexpectedly" en cada
+      # intento. Es modal, asusta, y encima bloquea el reintento automatico.
+      $argsEmu = @('-avd','AndroidTV','-no-snapshot','-no-metrics',
+                   '-crash-report-mode','disabled','-verbose')
       if ($modo -ne 'auto') {
         $argsEmu += @('-gpu', $modo)
         Write-Host "  Reintentando con GPU en modo '$modo'..." -ForegroundColor Yellow

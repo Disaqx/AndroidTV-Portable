@@ -68,7 +68,10 @@ if (Test-Path $tvIniPath) {
 
 function Start-Emulador($rapido) {
   Limpiar-DatosDeFallo
-  $a = @('-avd', 'AndroidTV', '-no-metrics')
+  # -crash-report-mode disabled evita el dialogo modal "closed unexpectedly",
+  # que ademas de asustar bloquea el arranque y puede salir fuera de pantalla.
+  # Es el mismo problema que Limpiar-DatosDeFallo, atacado por el otro lado.
+  $a = @('-avd', 'AndroidTV', '-no-metrics', '-crash-report-mode', 'disabled')
   if (-not $rapido) { $a += '-no-snapshot' }
   if ($audio) { $a += @('-audio', $audio) }
   if ($gpuModo) { $a += @('-gpu', $gpuModo) }
