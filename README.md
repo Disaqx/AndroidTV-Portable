@@ -211,6 +211,27 @@ tactil**, y el instalador te lo dice en rojo.
 
 Para activarlo o desactivarlo: `ESCALADOR-SI.bat` / `ESCALADOR-NO.bat`.
 
+## El sonido
+
+Por defecto se usa el backend **`winaudio`** (WASAPI), no el `dsound` que trae
+el emulador de fabrica.
+
+DirectSound es el que produce los chasquidos y "mini explosiones": su buffer se
+queda corto en cuanto la maquina virtual se retrasa un instante, y cada hueco
+suena como un chasquido. `winaudio` aguanta esos tirones sin romper el sonido.
+
+Si quieres volver al de antes, en `%USERPROFILE%\.android	v.ini`:
+
+```
+audio=dsound     # el de fabrica, el que chasquea
+audio=winaudio   # el que se usa ahora (por defecto)
+audio=none       # sin sonido
+```
+
+> Si el audio va mal **solo los primeros minutos** tras arrancar, no es el
+> backend: es Android terminando su trabajo de post-arranque. `ARRANQUE-RAPIDO.bat`
+> lo evita porque reanuda desde una instantanea, con el sistema ya asentado.
+
 ## Por que la ventana nativa y no scrcpy
 
 Se usa la ventana propia del emulador puesta a pantalla completa. Con scrcpy

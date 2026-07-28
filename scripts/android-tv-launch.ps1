@@ -20,12 +20,23 @@ $adb = "$sdk\platform-tools\adb.exe"
 #    "dsound" (DirectSound, el de por defecto) y "winaudio". DirectSound es el
 #    que suele dar chasquidos. Se puede cambiar en %USERPROFILE%\.android\tv.ini
 #    con la linea  audio=winaudio  (o audio=dsound para volver al normal).
-$audio = ''
+#    POR DEFECTO SE USA winaudio, NO dsound.
+#    DirectSound es el backend por defecto del emulador y es el que produce
+#    los chasquidos y "mini explosiones" durante la reproduccion: su buffer se
+#    queda corto cuando la maquina virtual se retrasa un instante, y cada
+#    hueco suena como un chasquido. winaudio (WASAPI) aguanta esos tirones sin
+#    romper el sonido.
+#    Estaba documentado como opcion manual desde hace tiempo, pero al no ser
+#    el valor por defecto nadie lo activaba y todo el mundo oia los chasquidos.
+#    Con  audio=dsound  en tv.ini se vuelve al de antes.
+$audio = 'winaudio'
 $tvIniPath = "$env:USERPROFILE\.android\tv.ini"
 if (Test-Path $tvIniPath) {
   $ma = (Get-Content $tvIniPath | Select-String '^\s*audio\s*=\s*(\S+)')
   if ($ma) { $audio = $ma.Matches[0].Groups[1].Value }
 }
+# audio=none desactiva el sonido: se traduce al flag que espera el emulador
+if ($audio -eq 'none') { $audio = '' ; $sinAudio = $true } else { $sinAudio = $false }
 
 #    ARRANQUE: por defecto en frio (-no-snapshot), que es lo seguro. Con
 #    "arranque=rapido" en tv.ini se usa la instantanea: arranca en segundos y,
@@ -73,7 +84,8 @@ function Start-Emulador($rapido) {
   # Es el mismo problema que Limpiar-DatosDeFallo, atacado por el otro lado.
   $a = @('-avd', 'AndroidTV', '-no-metrics', '-crash-report-mode', 'disabled')
   if (-not $rapido) { $a += '-no-snapshot' }
-  if ($audio) { $a += @('-audio', $audio) }
+  if ($sinAudio)   { $a += '-no-audio' }
+  elseif ($audio)  { $a += @('-audio', $audio) }
   if ($gpuModo) { $a += @('-gpu', $gpuModo) }
   Start-Process "$sdk\emulator\emulator.exe" -ArgumentList $a
 }
