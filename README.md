@@ -12,21 +12,12 @@ con el mismo paquete.
 ## Instalacion en un PC nuevo
 
 1. Ve a **[Releases](../../releases/latest)** y descarga
-   **`AndroidTV-Portable-cloudsdk.zip`** (8 MB).
+   **`AndroidTV-Portable-cloudsdk.zip`**. La primera instalacion baja el SDK
+   de Google (~1,3 GB); despues ya no.
 2. Descomprimelo donde quieras.
 3. Doble clic en **`INSTALAR.bat`**.
 
 Y ya. No hace falta clonar el repositorio, ni Android Studio, ni Java.
-
-### Las dos variantes
-
-| Adjunto | Tamano | El SDK... | Internet al instalar |
-|---|---:|---|---|
-| **`AndroidTV-Portable-cloudsdk.zip`** | 8 MB | se baja de Google al instalar | si (~1,3 GB, una vez) |
-| `AndroidTV-Portable.zip` | 1,05 GB | ya viene dentro | **no** |
-
-**Si dudas, coge `cloudsdk`.** El resultado es identico. El grande solo tiene
-sentido para instalar en un equipo **sin conexion**, llevandolo en un USB.
 
 > **Pulsa `INSTALAR.bat`, no `INSTALL.ps1`.** Windows **ejecuta** los `.bat`,
 > pero al hacer doble clic en un `.ps1` lo abre el editor en vez de correrlo.
@@ -58,8 +49,11 @@ todos los `.apk` que encuentre ahi, sin tocar nada mas.
 | **Downloader** (el del logo naranja) | https://www.aftvnews.com/downloader/ |
 | Tu app de IPTV | de donde la tengas |
 
-Si ya instalaste y quieres anadir una despues, dejala en `apps\` y ejecuta
-`ACTUALIZAR.bat`.
+Si el TV **ya esta instalado** y quieres anadir una app despues, dejala en
+`apps\` y ejecuta **`INSTALAR-APPS.bat`**.
+
+> `ACTUALIZAR.bat` **no** instala apps: solo reaplica los scripts y redetecta
+> la resolucion. Para apps es `INSTALAR-APPS.bat`.
 
 ## El SDK se instala solo
 
@@ -101,24 +95,12 @@ alto — coger "la mas nueva" a secas te instalaria una canary.
 Pesa 996 MB y **GitHub rechaza cualquier fichero de mas de 100 MB**, asi que
 esta excluido en `.gitignore`.
 
-Va en la [Release](../../releases/latest), que publica dos ficheros:
+Tampoco se publica en la Release: el SDK de Android **no es redistribuible**
+(ver [Licencias](#licencias)). El instalador lo baja de los servidores de
+Google, donde cada usuario acepta sus terminos directamente.
 
-| Adjunto | Que es | Cuando lo quieres |
-|---|---|---|
-| **`AndroidTV-Portable.zip`** | El paquete entero con el SDK dentro | **Casi siempre.** Descargar, descomprimir, instalar |
-| `sdk.7z` | Solo el SDK suelto | Si ya tienes el repo clonado y quieres evitar la descarga |
-
-Al ser un repositorio privado, bajar de la Release exige estar autenticado en
-GitHub. Por eso el instalador **no** depende de ella: cuando no encuentra el
-SDK tira de los repositorios de Google, que son publicos y no piden nada.
-
-## Las apps
-
-El instalador instala **todos los `.apk` que encuentre en `apps\`**, asi que
-para anadir una basta con dejarla ahi.
-
-Este repositorio incluye solo **`Downloader.apk`** (el del logo naranja, de
-AFTVnews). La app de IPTV no se versiona: no es redistribuible.
+Si quieres instalar **sin conexion** —llevarlo en un USB a un equipo sin
+internet— genera tu propio paquete con `EMPAQUETAR.bat -ConSdk`.
 
 ## Los .bat del paquete
 
@@ -126,6 +108,7 @@ AFTVnews). La app de IPTV no se versiona: no es redistribuible.
 |---|---|
 | `INSTALAR.bat` | Instalacion completa, la primera vez |
 | `ACTUALIZAR.bat` | Reaplica scripts y redetecta resolucion, sin tocar SDK ni apps |
+| `INSTALAR-APPS.bat` | Instala los `.apk` de `apps\` sobre una instalacion ya hecha |
 | `DIAGNOSTICO.bat` | Resolucion detectada, config del AVD, estado del puente, y **en vivo** lo que reporta el mando al pulsar cada boton |
 | `INFORME.bat` | Vuelca todo el estado a un `.txt` en el escritorio. Ejecutar **con el TV abierto** |
 | `ARRANQUE-RAPIDO.bat` | Arranque con instantanea (~20 s) |

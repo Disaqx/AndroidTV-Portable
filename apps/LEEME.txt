@@ -1,12 +1,39 @@
 Deja aqui los .apk que quieras instalar.
 
-El instalador instala TODOS los .apk que encuentre en esta carpeta, asi que
-basta con dejarlos y ejecutar INSTALAR.bat.
+INSTALAR.bat instala todos los que encuentre en esta carpeta.
+
+Si el TV YA esta instalado y quieres anadir una app despues:
+
+    INSTALAR-APPS.bat
+
+Ese es el que instala apps sobre una instalacion existente. Arranca el TV si
+hace falta y no toca nada mas.
+
+  OJO: ACTUALIZAR.bat NO instala apps. Solo reaplica los scripts y vuelve a
+  detectar la resolucion.
+
+
+APPS PARTIDAS (App Bundle)
+--------------------------
+Algunas apps descargadas de Play vienen partidas en varios .apk (una base mas
+sus complementos). Instalar solo uno falla con MISSING_SPLIT.
+
+Si tienes todas las piezas, metelas juntas en una SUBCARPETA dentro de apps\:
+
+    apps\MiApp\base.apk
+    apps\MiApp\split_config.arm64_v8a.apk
+    apps\MiApp\split_config.es.apk
+
+INSTALAR-APPS.bat las detecta y las instala juntas.
+
+Lo mas comodo suele ser buscar directamente la version "universal" del apk.
+
+
+DONDE CONSEGUIRLAS
+------------------
+No se distribuye ninguna app en este repositorio: no son nuestras.
 
   Downloader (el del logo naranja):  https://www.aftvnews.com/downloader/
 
-No se distribuye ninguna app en este repositorio: no son nuestras para
-redistribuirlas. Descargalas de su fuente oficial.
-
-Si ya instalaste y anades una app despues, dejala aqui y ejecuta
-ACTUALIZAR.bat.
+La imagen del TV es x86, asi que un apk solo-ARM fallara con
+NO_MATCHING_ABIS. Busca la version universal.
