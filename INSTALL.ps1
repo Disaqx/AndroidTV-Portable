@@ -704,6 +704,17 @@ if (-not $SoloScripts) {
     if ($serial) { break }
     if (-not ((& $adb devices) -match 'emulator-')) {
       Remove-Item $emuLog, $emuErr -Force -ErrorAction SilentlyContinue
+
+      # SE QUEDA EN NEGRO Y NO ARRANCA:
+      # tras un cierre brusco el emulador guarda datos de fallo, y en el
+      # arranque SIGUIENTE muestra un dialogo modal pidiendo permiso para
+      # enviarlos a Google. Ese dialogo bloquea el arranque: la ventana sale
+      # negra, adb nunca ve el dispositivo, y encima el dialogo puede
+      # aparecer fuera de pantalla, asi que ni se ve para cerrarlo.
+      # El lanzador ya lo limpiaba; el instalador no, y es justo el que corre
+      # despues de que el emulador se haya caido probando modos de GPU.
+      Remove-Item -Recurse -Force "$env:TEMP\AndroidEmulator" -ErrorAction SilentlyContinue
+
       $argsEmu = @('-avd','AndroidTV','-no-snapshot','-no-metrics','-verbose')
       if ($modo -ne 'auto') {
         $argsEmu += @('-gpu', $modo)
