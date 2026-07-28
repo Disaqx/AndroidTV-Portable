@@ -111,6 +111,16 @@ $ok = 0; $fallos = @()
 foreach ($a in $apks) {
   Write-Host ("  Instalando {0}..." -f $a.Name) -NoNewline
   $salida = (& $adb -s $serial install -r -g $a.FullName 2>&1) -join ' '
+
+  # -d permite instalar una version MAS ANTIGUA que la que ya hay. Sin el, si
+  # el TV tiene una version mas nueva -por ejemplo instalada antes desde
+  # Downloader- adb rechaza el apk y parece que "no se pudo instalar", cuando
+  # en realidad la app ya estaba ahi.
+  if ($salida -notmatch 'Success' -and $salida -match 'VERSION_DOWNGRADE|ALREADY_EXISTS') {
+    Write-Host "  reintentando permitiendo version anterior..." -NoNewline -ForegroundColor DarkGray
+    $salida = (& $adb -s $serial install -r -d -g $a.FullName 2>&1) -join ' '
+  }
+
   if ($salida -match 'Success') {
     Write-Host "  OK" -ForegroundColor Green
     $ok++
@@ -163,7 +173,11 @@ if ($fallos) {
       Write-Host "    Busca una version universal o x86." -ForegroundColor Yellow
     }
     elseif ($s -match 'ALREADY_EXISTS|VERSION_DOWNGRADE') {
-      Write-Host "    Ya hay una version igual o mas nueva instalada." -ForegroundColor Yellow
+      Write-Host "    LA APP YA ESTA INSTALADA en el TV, con una version igual" -ForegroundColor Green
+      Write-Host "    o mas nueva. No hay nada que hacer: buscala en la fila de" -ForegroundColor Green
+      Write-Host "    aplicaciones del televisor." -ForegroundColor Green
+      Write-Host "    (Si quieres forzar ESTA version, desinstalala antes desde" -ForegroundColor DarkGray
+      Write-Host "     Ajustes > Aplicaciones en el propio TV.)" -ForegroundColor DarkGray
     }
     elseif ($s -match 'INSUFFICIENT_STORAGE') {
       Write-Host "    No cabe: el TV se quedo sin espacio." -ForegroundColor Yellow
@@ -178,5 +192,17 @@ if ($fallos) {
   }
 }
 Write-Host ""
-Write-Host " Las apps aparecen en la fila de aplicaciones del TV." -ForegroundColor DarkGray
+# Se lista lo que hay REALMENTE en el TV. Un "FALLO" porque la app ya estaba
+# instalada se lee igual que un fallo de verdad, y esto lo aclara de un vistazo.
+Write-Host " Apps de terceros instaladas ahora mismo en el TV:" -ForegroundColor Cyan
+$paquetes = @(& $adb -s $serial shell pm list packages -3 2>$null) |
+            ForEach-Object { ($_ -replace 'package:', '').Trim() } |
+            Where-Object { $_ } | Sort-Object
+if ($paquetes.Count -eq 0) {
+  Write-Host "   (ninguna)" -ForegroundColor Yellow
+} else {
+  foreach ($p in $paquetes) { Write-Host "   $p" -ForegroundColor Green }
+}
+Write-Host ""
+Write-Host " Aparecen en la fila de aplicaciones del televisor." -ForegroundColor DarkGray
 Write-Host ""
